@@ -1,128 +1,361 @@
-import {
-  BarChart3,
-  Leaf,
-  PackageCheck,
-  ShoppingCart,
-  Timer,
-  Utensils
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
 
-import canteenOrdering from './assets/canteen-ordering.png'
-import { Button, MetricCard, Panel, ProgressBar, StatusBadge } from './components/ui'
+import { seedInventory, seedOrders, seedProducts } from './data/seed'
+import {
+  Cart,
+  CheckoutService,
+  InventoryItem,
+  Product,
+  StockService,
+  type AdminAction,
+  type Order,
+  type PaymentMethod
+} from './domain'
+import { CustomerOrdering } from './features/customer/CustomerOrdering'
+import { AppHeader, type ViewMode } from './features/layout/AppHeader'
+import { ManagementWorkspace } from './features/management/ManagementWorkspace'
+import { SustainabilityStrip } from './features/summary/SustainabilityStrip'
+
+const customerId = 'demo-student'
+const customerName = 'Aluno Digital Flavor'
+
+function cloneProduct(product: Product) {
+  return new Product({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    category: product.category,
+    priceCents: product.priceCents,
+    preparationMinutes: product.preparationMinutes,
+    sustainabilityScore: product.sustainabilityScore,
+    active: product.active
+  })
+}
+
+function cloneInventoryItem(item: InventoryItem) {
+  return new InventoryItem({
+    productId: item.productId,
+    quantity: item.quantity,
+    reserved: item.reserved,
+    reorderPoint: item.reorderPoint,
+    expiresAt: item.expiresAt
+  })
+}
+
+function cloneCart(cart: Cart, products: Product[]) {
+  const next = new Cart()
+  const productById = new Map(products.map((product) => [product.id, product]))
+
+  cart.listItems().forEach((item) => {
+    const product = productById.get(item.productId)
+
+    if (product) {
+      next.updateQuantity(product, item.quantity)
+    }
+  })
+
+  return next
+}
 
 export default function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('student')
+  const [products, setProducts] = useState(() => seedProducts.map(cloneProduct))
+  const [inventory, setInventory] = useState(() => seedInventory.map(cloneInventoryItem))
+  const [cart, setCart] = useState(() => new Cart())
+  const [queue, setQueue] = useState(() => seedOrders)
+  const [activeOrder, setActiveOrder] = useState<Order | undefined>(undefined)
+  const [completedOrders, setCompletedOrders] = useState<typeof seedOrders>([])
+  const [adminHistory, setAdminHistory] = useState<AdminAction[]>([])
+  const [pickupTime, setPickupTime] = useState('10:30')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix')
+  const [latestOrderCode, setLatestOrderCode] = useState<string>()
+  const [errorMessage, setErrorMessage] = useState<string>()
+  const [productDraft, setProductDraft] = useState<{
+    name: string
+    price: string
+    category: Product['category']
+  }>({
+    name: '',
+    price: '',
+    category: 'lanche'
+  })
+
+  const activeProducts = useMemo(() => products.filter((product) => product.active), [products])
+  const cartItems = cart.listItems()
+  const activeStock = inventory.reduce((sum, item) => sum + item.availableQuantity, 0)
+  const salesCents = [...queue, ...completedOrders, ...(activeOrder ? [activeOrder] : [])].reduce(
+    (sum, order) => sum + order.totalCents,
+    0
+  )
+
+  function pushHistory(label: string, undo: () => void) {
+    setAdminHistory((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        label,
+        createdAt: new Date(),
+        undo
+      }
+    ])
+  }
+
+  function handleAddProduct(productId: string) {
+    setErrorMessage(undefined)
+    const product = products.find((item) => item.id === productId)
+    const stock = inventory.find((item) => item.productId === productId)
+
+    if (!product) {
+      setErrorMessage('Produto nao encontrado.')
+      return
+    }
+
+    try {
+      const nextCart = cloneCart(cart, products)
+      nextCart.addProduct(product, 1, stock)
+      setCart(nextCart)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel adicionar.')
+    }
+  }
+
+  function handleUpdateQuantity(productId: string, quantity: number) {
+    setErrorMessage(undefined)
+    const product = products.find((item) => item.id === productId)
+    const stock = inventory.find((item) => item.productId === productId)
+
+    if (!product) {
+      return
+    }
+
+    try {
+      const nextCart = cloneCart(cart, products)
+      nextCart.updateQuantity(product, Math.max(0, quantity), stock)
+      setCart(nextCart)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Quantidade indisponivel.')
+    }
+  }
+
+  function handleCheckout() {
+    setErrorMessage(undefined)
+
+    try {
+      const stockService = new StockService(inventory.map(cloneInventoryItem))
+      const checkout = new CheckoutService(stockService)
+      const order = checkout.createOrder({
+        cart,
+        customerId,
+        customerName,
+        paymentMethod,
+        pickupTime
+      })
+
+      order.payment.approve()
+      order.advance('queued')
+
+      setQueue((current) => [...current, order])
+      setInventory(stockService.snapshot().map(cloneInventoryItem))
+      setCart(new Cart())
+      setLatestOrderCode(order.pickupCode)
+      setViewMode('management')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel confirmar.')
+    }
+  }
+
+  function handleTakeNextOrder() {
+    setQueue((current) => {
+      const [nextOrder, ...remaining] = current
+
+      if (nextOrder) {
+        nextOrder.advance('preparing')
+        setActiveOrder(nextOrder)
+      }
+
+      return remaining
+    })
+  }
+
+  function handleMarkReady() {
+    if (!activeOrder) {
+      return
+    }
+
+    activeOrder.advance('ready')
+    setActiveOrder(activeOrder)
+  }
+
+  function handleCompleteActiveOrder() {
+    if (!activeOrder) {
+      return
+    }
+
+    activeOrder.advance('completed')
+    setCompletedOrders((current) => [...current, activeOrder])
+    setActiveOrder(undefined)
+  }
+
+  function handleRestock(productId: string, units: number) {
+    const before = inventory.map(cloneInventoryItem)
+    const product = products.find((item) => item.id === productId)
+
+    setInventory((current) =>
+      current.map((item) => {
+        const next = cloneInventoryItem(item)
+
+        if (next.productId === productId) {
+          next.restock(units)
+        }
+
+        return next
+      })
+    )
+
+    pushHistory(`Reposicao de ${units} unidades em ${product?.name ?? productId}`, () => {
+      setInventory(before)
+    })
+  }
+
+  function handlePriceChange(productId: string, cents: number) {
+    const before = products.map(cloneProduct)
+    const product = products.find((item) => item.id === productId)
+
+    setProducts((current) =>
+      current.map((item) => {
+        const next = cloneProduct(item)
+
+        if (next.id === productId) {
+          next.updatePrice(cents)
+        }
+
+        return next
+      })
+    )
+
+    pushHistory(`Preco atualizado em ${product?.name ?? productId}`, () => {
+      setProducts(before)
+    })
+  }
+
+  function handleDeactivateProduct(productId: string) {
+    const before = products.map(cloneProduct)
+    const product = products.find((item) => item.id === productId)
+
+    setProducts((current) =>
+      current.map((item) => {
+        const next = cloneProduct(item)
+
+        if (next.id === productId) {
+          next.deactivate()
+        }
+
+        return next
+      })
+    )
+
+    pushHistory(`Produto pausado: ${product?.name ?? productId}`, () => {
+      setProducts(before)
+    })
+  }
+
+  function handleCreateProduct() {
+    const priceNumber = Number(productDraft.price.replace(',', '.'))
+
+    if (!productDraft.name.trim() || Number.isNaN(priceNumber) || priceNumber <= 0) {
+      setErrorMessage('Informe nome e preco valido para criar produto.')
+      return
+    }
+
+    const beforeProducts = products.map(cloneProduct)
+    const beforeInventory = inventory.map(cloneInventoryItem)
+    const newProduct = new Product({
+      id: `produto-${Date.now()}`,
+      name: productDraft.name.trim(),
+      description: 'Produto cadastrado pela gestao com controle de estoque.',
+      category: productDraft.category,
+      priceCents: Math.round(priceNumber * 100),
+      preparationMinutes: 6,
+      sustainabilityScore: 82
+    })
+    const newInventory = new InventoryItem({
+      productId: newProduct.id,
+      quantity: 12,
+      reorderPoint: 6
+    })
+
+    setProducts((current) => [...current, newProduct])
+    setInventory((current) => [...current, newInventory])
+    setProductDraft({ name: '', price: '', category: 'lanche' })
+    pushHistory(`Produto criado: ${newProduct.name}`, () => {
+      setProducts(beforeProducts)
+      setInventory(beforeInventory)
+    })
+  }
+
+  function handleUndoLast() {
+    const lastAction = adminHistory[adminHistory.length - 1]
+
+    if (!lastAction) {
+      return
+    }
+
+    lastAction.undo()
+    setAdminHistory((current) => current.slice(0, -1))
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-600 text-white">
-              <Utensils size={21} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-lg font-bold tracking-tight">Digital Flavor</p>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Cantina escolar inteligente
-              </p>
-            </div>
-          </div>
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
-            <a href="#cardapio">Cardapio</a>
-            <a href="#gestao">Gestao</a>
-            <a href="#estoque">Estoque</a>
-            <a href="#relatorios">Relatorios</a>
-          </nav>
-          <Button type="button" className="hidden sm:inline-flex">
-            Abrir pedido
-          </Button>
-        </div>
-      </header>
+      <AppHeader
+        viewMode={viewMode}
+        cartItems={cart.totalItems}
+        queuedOrders={queue.length}
+        onViewModeChange={setViewMode}
+      />
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="flex flex-col justify-center">
-          <StatusBadge tone="success">ODS 12 + cantina sem filas</StatusBadge>
-          <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-slate-950 md:text-6xl">
-            Pedido do aluno e gestao da cantina em uma unica plataforma.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-            Antecipe pedidos, reduza desperdicio, acompanhe estoque em tempo real e
-            organize a fila de preparo com uma experiencia visual clara para escola,
-            alunos e equipe da cantina.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button type="button">
-              <ShoppingCart size={18} aria-hidden="true" />
-              Montar pedido
-            </Button>
-            <Button type="button" variant="secondary">
-              <BarChart3 size={18} aria-hidden="true" />
-              Ver gestao
-            </Button>
-          </div>
-        </div>
+      <SustainabilityStrip
+        salesCents={salesCents}
+        activeStock={activeStock}
+        queuedOrders={queue.length}
+        wasteReduction={-28}
+      />
 
-        <Panel className="overflow-hidden">
-          <img
-            src={canteenOrdering}
-            alt="Aluno usando o Digital Flavor para pedir alimentos na cantina escolar"
-            className="aspect-[16/10] w-full object-cover"
-          />
-          <div className="grid gap-3 p-4 sm:grid-cols-3">
-            <MetricCard
-              label="Fila media"
-              value="4 min"
-              detail="Retirada planejada"
-              tone="info"
-            />
-            <MetricCard
-              label="Estoque"
-              value="91%"
-              detail="Itens disponiveis"
-              tone="success"
-            />
-            <MetricCard
-              label="Desperdicio"
-              value="-28%"
-              detail="Meta semanal"
-              tone="warning"
-            />
-          </div>
-        </Panel>
-      </section>
-
-      <section className="mx-auto grid max-w-7xl gap-4 px-5 pb-10 md:grid-cols-3">
-        <Panel className="p-5">
-          <div className="flex items-center gap-3">
-            <Leaf className="text-green-600" aria-hidden="true" />
-            <h2 className="text-lg font-bold">Cores com funcao</h2>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Verde comunica sustentabilidade, azul organiza operacoes, laranja guia a
-            compra e vermelho aparece apenas em estados criticos.
-          </p>
-        </Panel>
-        <Panel className="p-5">
-          <div className="flex items-center gap-3">
-            <PackageCheck className="text-blue-600" aria-hidden="true" />
-            <h2 className="text-lg font-bold">Estoque legivel</h2>
-          </div>
-          <div className="mt-4 space-y-3">
-            <ProgressBar value={84} tone="success" />
-            <ProgressBar value={44} tone="warning" />
-            <ProgressBar value={16} tone="danger" />
-          </div>
-        </Panel>
-        <Panel className="p-5">
-          <div className="flex items-center gap-3">
-            <Timer className="text-orange-500" aria-hidden="true" />
-            <h2 className="text-lg font-bold">Retirada antecipada</h2>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            A interface conecta pedido, preparo e pagamento para diminuir filas e
-            melhorar a previsao de producao da cantina.
-          </p>
-        </Panel>
-      </section>
+      {viewMode === 'student' ? (
+        <CustomerOrdering
+          products={activeProducts}
+          inventory={inventory}
+          cartItems={cartItems}
+          cartTotalCents={cart.totalCents}
+          pickupTime={pickupTime}
+          paymentMethod={paymentMethod}
+          latestOrderCode={latestOrderCode}
+          errorMessage={errorMessage}
+          onPickupTimeChange={setPickupTime}
+          onPaymentMethodChange={setPaymentMethod}
+          onAddProduct={handleAddProduct}
+          onUpdateQuantity={handleUpdateQuantity}
+          onCheckout={handleCheckout}
+        />
+      ) : (
+        <ManagementWorkspace
+          products={products}
+          inventory={inventory}
+          queue={queue}
+          activeOrder={activeOrder}
+          completedOrders={completedOrders}
+          adminHistory={adminHistory}
+          productDraft={productDraft}
+          onProductDraftChange={setProductDraft}
+          onTakeNextOrder={handleTakeNextOrder}
+          onMarkReady={handleMarkReady}
+          onCompleteActiveOrder={handleCompleteActiveOrder}
+          onRestock={handleRestock}
+          onPriceChange={handlePriceChange}
+          onDeactivateProduct={handleDeactivateProduct}
+          onCreateProduct={handleCreateProduct}
+          onUndoLast={handleUndoLast}
+        />
+      )}
     </main>
   )
 }

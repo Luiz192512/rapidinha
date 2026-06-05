@@ -1,0 +1,203 @@
+import type { FormEvent, ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { LockKeyhole, UserPlus, Utensils } from 'lucide-react'
+
+import { Button, Panel, StatusBadge } from '../../components/ui'
+import { adminCredential } from '../../auth/demoAuth'
+
+interface LoginPageProps {
+  errorMessage?: string
+  onLogin: (email: string, password: string) => void
+}
+
+interface RegisterPageProps {
+  errorMessage?: string
+  onRegister: (name: string, email: string, password: string) => void
+}
+
+export function LoginPage({ errorMessage, onLogin }: LoginPageProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    onLogin(String(formData.get('email') ?? ''), String(formData.get('password') ?? ''))
+  }
+
+  return (
+    <AuthLayout
+      title="Entrar no Digital Flavor"
+      description="Admins entram com credenciais especificas e alunos entram com a conta criada no cadastro."
+    >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          E-mail
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="seu-email@escola.com"
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          Senha
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Digite sua senha"
+            required
+          />
+        </label>
+
+        {errorMessage ? (
+          <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {errorMessage}{' '}
+            <Link className="underline" to="/cadastro">
+              Cadastrar aluno
+            </Link>
+          </div>
+        ) : null}
+
+        <Button type="submit" variant="secondary">
+          <LockKeyhole size={18} aria-hidden="true" />
+          Entrar
+        </Button>
+      </form>
+
+      <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+        <p className="font-bold">Acesso administrativo de demonstracao</p>
+        <p className="mt-1">E-mail: {adminCredential.email}</p>
+        <p>Senha: {adminCredential.password}</p>
+      </div>
+
+      <p className="mt-5 text-center text-sm text-slate-600">
+        Aluno ainda nao possui cadastro?{' '}
+        <Link className="font-bold text-orange-600 underline" to="/cadastro">
+          Criar usuario
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}
+
+export function RegisterPage({ errorMessage, onRegister }: RegisterPageProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    onRegister(
+      String(formData.get('name') ?? ''),
+      String(formData.get('email') ?? ''),
+      String(formData.get('password') ?? '')
+    )
+  }
+
+  return (
+    <AuthLayout
+      title="Cadastro do aluno"
+      description="Crie o usuario do aluno para acessar o cardapio, montar pedido e acompanhar retirada."
+    >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          Nome do aluno
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="name"
+            autoComplete="name"
+            placeholder="Nome completo"
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          E-mail
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="aluno@escola.com"
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          Senha
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            placeholder="Minimo 6 caracteres"
+            required
+          />
+        </label>
+
+        {errorMessage ? (
+          <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <Button type="submit">
+          <UserPlus size={18} aria-hidden="true" />
+          Cadastrar e entrar
+        </Button>
+      </form>
+
+      <p className="mt-5 text-center text-sm text-slate-600">
+        Ja possui conta?{' '}
+        <Link className="font-bold text-blue-700 underline" to="/login">
+          Voltar para login
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}
+
+function AuthLayout({
+  title,
+  description,
+  children
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <main className="min-h-screen bg-slate-50 px-5 py-8 text-slate-950">
+      <Panel className="mx-auto grid max-w-5xl overflow-hidden lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="flex min-h-[620px] flex-col justify-between bg-gradient-to-br from-green-700 via-green-600 to-blue-700 p-8 text-white">
+          <div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25">
+              <Utensils size={25} aria-hidden="true" />
+            </div>
+            <h1 className="mt-8 max-w-md text-4xl font-bold tracking-tight">
+              Digital Flavor
+            </h1>
+            <p className="mt-4 max-w-md text-lg leading-8 text-green-50">
+              Login separado para alunos e administradores, com rotas protegidas e
+              experiencia direcionada para cada perfil.
+            </p>
+          </div>
+          <div className="grid gap-3 text-sm text-green-50">
+            <p>Verde: sustentabilidade e estoque disponivel.</p>
+            <p>Azul: gestao, confianca e operacao.</p>
+            <p>Laranja: compra, acao e fluxo do pedido.</p>
+          </div>
+        </section>
+
+        <section className="flex min-h-[620px] items-center p-6 sm:p-10">
+          <div className="w-full">
+            <StatusBadge tone="info">Acesso por perfil</StatusBadge>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
+              {title}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+            <div className="mt-7">{children}</div>
+          </div>
+        </section>
+      </Panel>
+    </main>
+  )
+}

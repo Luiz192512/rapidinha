@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 
+import {
+  authenticateUser,
+  clearSession,
+  readSession,
+  registerStudentAccount,
+  saveSession,
+  type AuthSession
+} from './auth/demoAuth'
 import { seedInventory, seedOrders, seedProducts } from './data/seed'
 import {
   Cart,
@@ -12,7 +21,8 @@ import {
   type PaymentMethod
 } from './domain'
 import { CustomerOrdering } from './features/customer/CustomerOrdering'
-import { AppHeader, type ViewMode } from './features/layout/AppHeader'
+import { LoginPage, RegisterPage } from './features/auth/AuthPages'
+import { AppHeader } from './features/layout/AppHeader'
 import { ManagementWorkspace } from './features/management/ManagementWorkspace'
 import { SustainabilityStrip } from './features/summary/SustainabilityStrip'
 
@@ -58,7 +68,10 @@ function cloneCart(cart: Cart, products: Product[]) {
 }
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>('student')
+  const navigate = useNavigate()
+  const [session, setSession] = useState<AuthSession | undefined>(() => readSession())
+  const [loginError, setLoginError] = useState<string>()
+  const [registerError, setRegisterError] = useState<string>()
   const [products, setProducts] = useState(() => seedProducts.map(cloneProduct))
   const [inventory, setInventory] = useState(() => seedInventory.map(cloneInventoryItem))
   const [cart, setCart] = useState(() => new Cart())
@@ -87,6 +100,53 @@ export default function App() {
     (sum, order) => sum + order.totalCents,
     0
   )
+
+  function handleLogin(email: string, password: string) {
+    setLoginError(undefined)
+    const result = authenticateUser(email, password)
+
+    if ('error' in result) {
+      setLoginError(result.message)
+      return
+    }
+
+    saveSession(result)
+    setSession(result)
+    navigate(result.role === 'admin' ? '/admin' : '/', { replace: true })
+  }
+
+  function handleRegister(name: string, email: string, password: string) {
+    setRegisterError(undefined)
+
+    if (name.trim().length < 3) {
+      setRegisterError('Informe o nome completo do aluno.')
+      return
+    }
+
+    if (password.length < 6) {
+      setRegisterError('A senha precisa ter pelo menos 6 caracteres.')
+      return
+    }
+
+    const account = registerStudentAccount({ name, email, password })
+    const nextSession = {
+      role: 'student',
+      name: account.name,
+      email: account.email
+    } satisfies AuthSession
+
+    saveSession(nextSession)
+    setSession(nextSession)
+    navigate('/', { replace: true })
+  }
+
+  function handleLogout() {
+    clearSession()
+    setSession(undefined)
+    setCart(new Cart())
+    setLatestOrderCode(undefined)
+    navigate('/login', { replace: true })
+  }
 
   function pushHistory(label: string, undo: () => void) {
     setAdminHistory((current) => [
@@ -158,7 +218,6 @@ export default function App() {
       setInventory(stockService.snapshot().map(cloneInventoryItem))
       setCart(new Cart())
       setLatestOrderCode(order.pickupCode)
-      setViewMode('management')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel confirmar.')
     }
@@ -304,58 +363,104 @@ export default function App() {
     setAdminHistory((current) => current.slice(0, -1))
   }
 
-  return (
+  const studentPage = session?.role === 'student' ? (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <AppHeader
-        viewMode={viewMode}
+        role="student"
         cartItems={cart.totalItems}
         queuedOrders={queue.length}
-        onViewModeChange={setViewMode}
+        userName={session.name}
+        onLogout={handleLogout}
       />
-
       <SustainabilityStrip
         salesCents={salesCents}
         activeStock={activeStock}
         queuedOrders={queue.length}
         wasteReduction={-28}
       />
-
-      {viewMode === 'student' ? (
-        <CustomerOrdering
-          products={activeProducts}
-          inventory={inventory}
-          cartItems={cartItems}
-          cartTotalCents={cart.totalCents}
-          pickupTime={pickupTime}
-          paymentMethod={paymentMethod}
-          latestOrderCode={latestOrderCode}
-          errorMessage={errorMessage}
-          onPickupTimeChange={setPickupTime}
-          onPaymentMethodChange={setPaymentMethod}
-          onAddProduct={handleAddProduct}
-          onUpdateQuantity={handleUpdateQuantity}
-          onCheckout={handleCheckout}
-        />
-      ) : (
-        <ManagementWorkspace
-          products={products}
-          inventory={inventory}
-          queue={queue}
-          activeOrder={activeOrder}
-          completedOrders={completedOrders}
-          adminHistory={adminHistory}
-          productDraft={productDraft}
-          onProductDraftChange={setProductDraft}
-          onTakeNextOrder={handleTakeNextOrder}
-          onMarkReady={handleMarkReady}
-          onCompleteActiveOrder={handleCompleteActiveOrder}
-          onRestock={handleRestock}
-          onPriceChange={handlePriceChange}
-          onDeactivateProduct={handleDeactivateProduct}
-          onCreateProduct={handleCreateProduct}
-          onUndoLast={handleUndoLast}
-        />
-      )}
+      <CustomerOrdering
+        products={activeProducts}
+        inventory={inventory}
+        cartItems={cartItems}
+        cartTotalCents={cart.totalCents}
+        pickupTime={pickupTime}
+        paymentMethod={paymentMethod}
+        latestOrderCode={latestOrderCode}
+        errorMessage={errorMessage}
+        onPickupTimeChange={setPickupTime}
+        onPaymentMethodChange={setPaymentMethod}
+        onAddProduct={handleAddProduct}
+        onUpdateQuantity={handleUpdateQuantity}
+        onCheckout={handleCheckout}
+      />
     </main>
+  ) : (
+    <Navigate to={session?.role === 'admin' ? '/admin' : '/login'} replace />
+  )
+
+  const adminPage = session?.role === 'admin' ? (
+    <main className="min-h-screen bg-slate-50 text-slate-950">
+      <AppHeader
+        role="admin"
+        cartItems={cart.totalItems}
+        queuedOrders={queue.length}
+        userName={session.name}
+        onLogout={handleLogout}
+      />
+      <SustainabilityStrip
+        salesCents={salesCents}
+        activeStock={activeStock}
+        queuedOrders={queue.length}
+        wasteReduction={-28}
+      />
+      <ManagementWorkspace
+        products={products}
+        inventory={inventory}
+        queue={queue}
+        activeOrder={activeOrder}
+        completedOrders={completedOrders}
+        adminHistory={adminHistory}
+        productDraft={productDraft}
+        onProductDraftChange={setProductDraft}
+        onTakeNextOrder={handleTakeNextOrder}
+        onMarkReady={handleMarkReady}
+        onCompleteActiveOrder={handleCompleteActiveOrder}
+        onRestock={handleRestock}
+        onPriceChange={handlePriceChange}
+        onDeactivateProduct={handleDeactivateProduct}
+        onCreateProduct={handleCreateProduct}
+        onUndoLast={handleUndoLast}
+      />
+    </main>
+  ) : (
+    <Navigate to={session?.role === 'student' ? '/' : '/login'} replace />
+  )
+
+  return (
+    <Routes>
+      <Route path="/" element={studentPage} />
+      <Route
+        path="/login"
+        element={
+          session ? (
+            <Navigate to={session.role === 'admin' ? '/admin' : '/'} replace />
+          ) : (
+            <LoginPage errorMessage={loginError} onLogin={handleLogin} />
+          )
+        }
+      />
+      <Route
+        path="/cadastro"
+        element={
+          session ? (
+            <Navigate to={session.role === 'admin' ? '/admin' : '/'} replace />
+          ) : (
+            <RegisterPage errorMessage={registerError} onRegister={handleRegister} />
+          )
+        }
+      />
+      <Route path="/admin" element={adminPage} />
+      <Route path="*" element={<Navigate to={session?.role === 'admin' ? '/admin' : '/'} replace />} />
+    </Routes>
   )
 }

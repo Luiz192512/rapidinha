@@ -1,21 +1,23 @@
-import { BarChart3, Leaf, Search, ShoppingCart, Utensils } from 'lucide-react'
+import { Leaf, LogOut, Search, ShieldCheck, ShoppingCart, Utensils } from 'lucide-react'
 
 import { Button, StatusBadge } from '../../components/ui'
 
-export type ViewMode = 'student' | 'management'
+export type HeaderRole = 'student' | 'admin'
 
 interface AppHeaderProps {
-  viewMode: ViewMode
+  role: HeaderRole
   cartItems: number
   queuedOrders: number
-  onViewModeChange: (mode: ViewMode) => void
+  userName: string
+  onLogout: () => void
 }
 
 export function AppHeader({
-  viewMode,
+  role,
   cartItems,
   queuedOrders,
-  onViewModeChange
+  userName,
+  onLogout
 }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -32,7 +34,9 @@ export function AppHeader({
               </p>
             </div>
           </div>
-          <StatusBadge tone="success">ODS 12</StatusBadge>
+          <StatusBadge tone={role === 'admin' ? 'info' : 'success'}>
+            {role === 'admin' ? '/admin' : 'Aluno'}
+          </StatusBadge>
         </div>
 
         <div className="flex flex-1 flex-col gap-3 lg:max-w-3xl lg:flex-row lg:items-center">
@@ -45,44 +49,28 @@ export function AppHeader({
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
-            <button
-              type="button"
-              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                viewMode === 'student'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-950'
-              }`}
-              onClick={() => onViewModeChange('student')}
-            >
-              <ShoppingCart size={17} aria-hidden="true" />
-              Aluno
-            </button>
-            <button
-              type="button"
-              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                viewMode === 'management'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-950'
-              }`}
-              onClick={() => onViewModeChange('management')}
-            >
-              <BarChart3 size={17} aria-hidden="true" />
-              Gestao
-            </button>
+          <div className="flex min-h-10 items-center gap-2 rounded-lg bg-slate-100 px-3 text-sm font-semibold text-slate-700">
+            {role === 'admin' ? (
+              <ShieldCheck size={17} className="text-blue-700" aria-hidden="true" />
+            ) : (
+              <ShoppingCart size={17} className="text-orange-600" aria-hidden="true" />
+            )}
+            <span>{userName}</span>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="quiet"
-            onClick={() => onViewModeChange('management')}
-          >
+          <Button type="button" variant="quiet">
             Fila {queuedOrders}
           </Button>
-          <Button type="button" onClick={() => onViewModeChange('student')}>
-            Pedido {cartItems}
+          {role === 'student' ? (
+            <Button type="button" variant="primary">
+              Pedido {cartItems}
+            </Button>
+          ) : null}
+          <Button type="button" variant="quiet" onClick={onLogout}>
+            <LogOut size={17} aria-hidden="true" />
+            Sair
           </Button>
         </div>
 
@@ -94,4 +82,3 @@ export function AppHeader({
     </header>
   )
 }
-

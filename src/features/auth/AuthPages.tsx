@@ -173,8 +173,8 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
             name="studentRa"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="0000000-0"
-            maxLength={9}
+            placeholder="00000000-0"
+            maxLength={10}
             onInput={(event) => {
               event.currentTarget.value = formatStudentRa(event.currentTarget.value)
             }}
@@ -271,8 +271,8 @@ export function CompleteRegistrationPage({
             name="studentRa"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="0000000-0"
-            maxLength={9}
+            placeholder="00000000-0"
+            maxLength={10}
             onInput={(event) => {
               event.currentTarget.value = formatStudentRa(event.currentTarget.value)
             }}

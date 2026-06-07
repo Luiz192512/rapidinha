@@ -107,6 +107,8 @@ export function ProfileDetailsPage({
     onProfileSave({
       name: String(formData.get('name') ?? profile.name),
       email: profile.email,
+      studentRa: profile.studentRa,
+      cpf: profile.cpf,
       phone: String(formData.get('phone') ?? ''),
       classroom: String(formData.get('classroom') ?? ''),
       shift: String(formData.get('shift') ?? 'manha') as CustomerProfileDetails['shift']
@@ -135,6 +137,22 @@ export function ProfileDetailsPage({
           <input
             className="min-h-11 rounded-md border border-slate-200 bg-slate-50 px-3 text-slate-500 outline-none"
             value={profile.email}
+            readOnly
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          RA
+          <input
+            className="min-h-11 rounded-md border border-slate-200 bg-slate-50 px-3 text-slate-500 outline-none"
+            value={profile.studentRa}
+            readOnly
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          CPF
+          <input
+            className="min-h-11 rounded-md border border-slate-200 bg-slate-50 px-3 text-slate-500 outline-none"
+            value={profile.cpf}
             readOnly
           />
         </label>

@@ -8,6 +8,8 @@ export interface Database {
           id: string
           full_name: string
           email: string
+          student_ra: string | null
+          cpf: string | null
           role: 'customer' | 'employee' | 'manager' | 'admin'
           created_at: string
           updated_at: string
@@ -16,6 +18,8 @@ export interface Database {
           id: string
           full_name: string
           email: string
+          student_ra?: string | null
+          cpf?: string | null
           role?: 'customer' | 'employee' | 'manager' | 'admin'
           created_at?: string
           updated_at?: string
@@ -23,6 +27,8 @@ export interface Database {
         Update: {
           full_name?: string
           email?: string
+          student_ra?: string | null
+          cpf?: string | null
           role?: 'customer' | 'employee' | 'manager' | 'admin'
           updated_at?: string
         }

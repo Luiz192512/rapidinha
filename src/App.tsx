@@ -40,6 +40,7 @@ import {
 } from './features/account/AccountPages'
 import { CustomerOrdering } from './features/customer/CustomerOrdering'
 import {
+  CompleteRegistrationPage,
   ForgotPasswordPage,
   LoginPage,
   OAuthCallbackPage,
@@ -59,9 +60,18 @@ import {
   signInWithPassword,
   signOut as signOutFromSupabase,
   signUpCustomer,
+  updateCurrentUserMetadata,
   updateCurrentUserPassword
 } from './lib/auth'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import {
+  formatCpf,
+  formatStudentRa,
+  isValidCpf,
+  isValidStudentRa,
+  normalizeCpf,
+  normalizeStudentRa
+} from './utils/documents'
 
 function cloneProduct(product: Product) {
   return new Product({
@@ -123,6 +133,8 @@ function sessionFromSupabaseUser(user: {
 }) {
   const email = user.email ?? ''
   const metadataName = user.user_metadata?.full_name ?? user.user_metadata?.name
+  const metadataStudentRa = user.user_metadata?.student_ra
+  const metadataCpf = user.user_metadata?.cpf
   const role = user.app_metadata?.role === 'admin' ? 'admin' : 'student'
 
   return {
@@ -130,13 +142,23 @@ function sessionFromSupabaseUser(user: {
     name: typeof metadataName === 'string' && metadataName.trim()
       ? metadataName
       : email.split('@')[0] || 'Cliente Digital Flavor',
-    email
+    email,
+    studentRa: typeof metadataStudentRa === 'string' ? metadataStudentRa : undefined,
+    cpf: typeof metadataCpf === 'string' ? metadataCpf : undefined
   } satisfies AuthSession
 }
 
 const shouldUseSupabaseCustomerPasswordAuth =
   isSupabaseConfigured &&
   (import.meta.env.PROD || import.meta.env.VITE_SUPABASE_PASSWORD_AUTH === 'true')
+
+function hasCompleteStudentDocuments(authSession?: AuthSession) {
+  if (!authSession || authSession.role !== 'student') {
+    return false
+  }
+
+  return isValidStudentRa(authSession.studentRa ?? '') && isValidCpf(authSession.cpf ?? '')
+}
 
 export default function App() {
   const navigate = useNavigate()
@@ -150,6 +172,7 @@ export default function App() {
   const [passwordUpdateError, setPasswordUpdateError] = useState<string>()
   const [passwordUpdateSuccess, setPasswordUpdateSuccess] = useState<string>()
   const [authCallbackError, setAuthCallbackError] = useState<string>()
+  const [completeRegistrationError, setCompleteRegistrationError] = useState<string>()
   const [products, setProducts] = useState(() => seedProducts.map(cloneProduct))
   const [inventory, setInventory] = useState(() => seedInventory.map(cloneInventoryItem))
   const [cart, setCart] = useState(() => new Cart())
@@ -193,7 +216,14 @@ export default function App() {
       setSession(userSession)
 
       if (location.pathname === '/login' || location.pathname === '/cadastro' || location.pathname === '/auth/callback') {
-        navigate(userSession.role === 'admin' ? '/admin' : '/', { replace: true })
+        navigate(
+          userSession.role === 'admin'
+            ? '/admin'
+            : hasCompleteStudentDocuments(userSession)
+              ? '/'
+              : '/completar-cadastro',
+          { replace: true }
+        )
       }
     }
 
@@ -416,11 +446,29 @@ export default function App() {
     }
   }
 
-  async function handleRegister(name: string, email: string, password: string) {
+  async function handleRegister(
+    name: string,
+    email: string,
+    password: string,
+    studentRa: string,
+    cpf: string
+  ) {
     setRegisterError(undefined)
+    const normalizedStudentRa = normalizeStudentRa(studentRa)
+    const normalizedCpf = normalizeCpf(cpf)
 
     if (name.trim().length < 3) {
       setRegisterError('Informe o nome completo do aluno.')
+      return
+    }
+
+    if (!isValidStudentRa(normalizedStudentRa)) {
+      setRegisterError('Informe um RA com 8 digitos no formato 0000000-0.')
+      return
+    }
+
+    if (!isValidCpf(normalizedCpf)) {
+      setRegisterError('Informe um CPF valido.')
       return
     }
 
@@ -433,7 +481,9 @@ export default function App() {
       const { data, error } = await signUpCustomer({
         fullName: name,
         email,
-        password
+        password,
+        studentRa: formatStudentRa(normalizedStudentRa),
+        cpf: formatCpf(normalizedCpf)
       })
 
       if (error) {
@@ -453,15 +503,105 @@ export default function App() {
       return
     }
 
-    const account = registerStudentAccount({ name, email, password })
+    const account = registerStudentAccount({
+      name,
+      email,
+      password,
+      studentRa: formatStudentRa(normalizedStudentRa),
+      cpf: formatCpf(normalizedCpf)
+    })
     const nextSession = {
       role: 'student',
       name: account.name,
-      email: account.email
+      email: account.email,
+      studentRa: account.studentRa,
+      cpf: account.cpf
     } satisfies AuthSession
 
     saveSession(nextSession)
     setSession(nextSession)
+    navigate('/', { replace: true })
+  }
+
+  async function handleCompleteRegistration(studentRa: string, cpf: string) {
+    setCompleteRegistrationError(undefined)
+
+    if (!session || session.role !== 'student') {
+      setCompleteRegistrationError('Entre com sua conta para completar o cadastro.')
+      return
+    }
+
+    const normalizedStudentRa = normalizeStudentRa(studentRa)
+    const normalizedCpf = normalizeCpf(cpf)
+
+    if (!isValidStudentRa(normalizedStudentRa)) {
+      setCompleteRegistrationError('Informe um RA com 8 digitos no formato 0000000-0.')
+      return
+    }
+
+    if (!isValidCpf(normalizedCpf)) {
+      setCompleteRegistrationError('Informe um CPF valido.')
+      return
+    }
+
+    const nextProfile = {
+      ...customerProfile,
+      name: customerProfile.name || session.name,
+      email: customerProfile.email || session.email,
+      studentRa: formatStudentRa(normalizedStudentRa),
+      cpf: formatCpf(normalizedCpf)
+    } satisfies CustomerProfileDetails
+    const nextSession = {
+      ...session,
+      studentRa: nextProfile.studentRa,
+      cpf: nextProfile.cpf
+    } satisfies AuthSession
+
+    let shouldSyncRemotely = false
+
+    if (supabase) {
+      const { data: supabaseSession, error: supabaseSessionError } = await supabase.auth.getSession()
+
+      if (supabaseSessionError) {
+        setCompleteRegistrationError(supabaseSessionError.message)
+        return
+      }
+
+      shouldSyncRemotely = Boolean(supabaseSession.session)
+
+      const { error } = shouldSyncRemotely
+        ? await updateCurrentUserMetadata({
+            student_ra: nextProfile.studentRa,
+            cpf: nextProfile.cpf
+          })
+        : { error: null }
+
+      if (error) {
+        setCompleteRegistrationError(error.message)
+        return
+      }
+    }
+
+    if (shouldSyncRemotely) {
+      const syncResult = await saveCustomerExperience({
+        profile: nextProfile,
+        preferences: customerPreferences,
+        paymentMethods
+      })
+
+      if (!syncResult.synced) {
+        setCompleteRegistrationError(syncResult.reason)
+        return
+      }
+    }
+
+    saveCustomerProfile(nextProfile)
+    saveSession(nextSession)
+    setCustomerProfile(nextProfile)
+    setSession(nextSession)
+    if (!shouldSyncRemotely) {
+      syncCustomerData(nextProfile)
+    }
     navigate('/', { replace: true })
   }
 
@@ -868,7 +1008,7 @@ export default function App() {
     setAdminHistory((current) => current.slice(0, -1))
   }
 
-  const studentPage = session?.role === 'student' ? (
+  const studentPage = session?.role === 'student' && hasCompleteStudentDocuments(session) ? (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <AppHeader
         role="student"
@@ -894,7 +1034,16 @@ export default function App() {
       />
     </main>
   ) : (
-    <Navigate to={session?.role === 'admin' ? '/admin' : '/login'} replace />
+    <Navigate
+      to={
+        session?.role === 'admin'
+          ? '/admin'
+          : session?.role === 'student'
+            ? '/completar-cadastro'
+            : '/login'
+      }
+      replace
+    />
   )
 
   const adminPage = session?.role === 'admin' ? (
@@ -938,6 +1087,10 @@ export default function App() {
       return <Navigate to={session?.role === 'admin' ? '/admin' : '/login'} replace />
     }
 
+    if (!hasCompleteStudentDocuments(session)) {
+      return <Navigate to="/completar-cadastro" replace />
+    }
+
     return (
       <main className="min-h-screen bg-slate-50 text-slate-950">
         <AppHeader
@@ -959,7 +1112,16 @@ export default function App() {
         path="/login"
         element={
           session ? (
-            <Navigate to={session.role === 'admin' ? '/admin' : '/'} replace />
+            <Navigate
+              to={
+                session.role === 'admin'
+                  ? '/admin'
+                  : hasCompleteStudentDocuments(session)
+                    ? '/'
+                    : '/completar-cadastro'
+              }
+              replace
+            />
           ) : (
             <LoginPage
               errorMessage={loginError}
@@ -973,13 +1135,41 @@ export default function App() {
         path="/cadastro"
         element={
           session ? (
-            <Navigate to={session.role === 'admin' ? '/admin' : '/'} replace />
+            <Navigate
+              to={
+                session.role === 'admin'
+                  ? '/admin'
+                  : hasCompleteStudentDocuments(session)
+                    ? '/'
+                    : '/completar-cadastro'
+              }
+              replace
+            />
           ) : (
             <RegisterPage
               errorMessage={registerError}
               onRegister={handleRegister}
               onGoogleLogin={handleGoogleLogin}
             />
+          )
+        }
+      />
+      <Route
+        path="/completar-cadastro"
+        element={
+          session?.role === 'student' ? (
+            hasCompleteStudentDocuments(session) ? (
+              <Navigate to="/" replace />
+            ) : (
+              <CompleteRegistrationPage
+                errorMessage={completeRegistrationError}
+                userName={session.name}
+                onCompleteRegistration={handleCompleteRegistration}
+                onLogout={handleLogout}
+              />
+            )
+          ) : (
+            <Navigate to={session?.role === 'admin' ? '/admin' : '/login'} replace />
           )
         }
       />

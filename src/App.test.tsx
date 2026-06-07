@@ -7,6 +7,8 @@ import App from './App'
 import { adminCredential } from './auth/demoAuth'
 
 const technicalTerms = [/CRUD/i, /FIFO/i, /Queue/i, /Pilha/i, /ODS/i, /3s/i, /estrutura de dados/i]
+const validRa = '1234567-8'
+const validCpf = '529.982.247-25'
 
 describe('Digital Flavor app', () => {
   beforeEach(() => {
@@ -23,11 +25,15 @@ describe('Digital Flavor app', () => {
     )
 
     await user.type(screen.getByLabelText(/Nome completo/i), 'Aluno Teste')
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'aluno@escola.com')
     await user.type(screen.getByLabelText(/Senha/i), 'senha123')
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
-    expect(screen.getByRole('heading', { name: /Cardapio para o intervalo/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Cardapio para o intervalo/i })
+    ).toBeInTheDocument()
     technicalTerms.forEach((term) => {
       expect(screen.queryByText(term)).not.toBeInTheDocument()
     })
@@ -50,6 +56,8 @@ describe('Digital Flavor app', () => {
     )
 
     await user.type(screen.getByLabelText(/Nome completo/i), 'Luiz Gustavo Lorencone Enz')
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'luiz@escola.com')
     await user.type(screen.getByLabelText(/Senha/i), 'senha123')
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
@@ -138,6 +146,8 @@ describe('Digital Flavor app', () => {
     )
 
     await user.type(screen.getByLabelText(/Nome completo/i), 'Aluno Conta')
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'conta@escola.com')
     await user.type(screen.getByLabelText(/Senha/i), 'senha123')
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
@@ -150,6 +160,8 @@ describe('Digital Flavor app', () => {
     await user.click(screen.getByRole('button', { name: /Aluno/i }))
     await user.click(screen.getByRole('link', { name: /Dados do perfil/i }))
     expect(screen.getByRole('heading', { name: /Informacoes do cliente/i })).toBeInTheDocument()
+    expect(screen.getByDisplayValue(validRa)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(validCpf)).toBeInTheDocument()
     await user.clear(screen.getByLabelText(/Telefone/i))
     await user.type(screen.getByLabelText(/Telefone/i), '(11) 99999-0000')
     await user.click(screen.getByRole('button', { name: /Salvar perfil/i }))
@@ -160,6 +172,61 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/Nova chave PIX/i), 'conta@escola.com')
     await user.click(screen.getByRole('button', { name: /Adicionar PIX/i }))
     expect(screen.getByText(/PIX salvo/i)).toBeInTheDocument()
+  })
+
+  it('requires valid RA and CPF during client registration', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/cadastro']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    await user.type(screen.getByLabelText(/Nome completo/i), 'Aluno Documento')
+    await user.type(screen.getByLabelText(/^RA$/i), '123')
+    await user.type(screen.getByLabelText(/^CPF$/i), '111.111.111-11')
+    await user.type(screen.getByLabelText(/E-mail/i), 'documento@escola.com')
+    await user.type(screen.getByLabelText(/Senha/i), 'senha123')
+    await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
+
+    expect(screen.getByText(/Informe um RA com 8 digitos/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Cardapio para o intervalo/i })).not.toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText(/^RA$/i))
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
+
+    expect(screen.getByText(/Informe um CPF valido/i)).toBeInTheDocument()
+  })
+
+  it('asks Google customers to complete RA and CPF before opening the menu', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(
+      'digital-flavor-session',
+      JSON.stringify({
+        role: 'student',
+        name: 'Aluno Google',
+        email: 'google@escola.com'
+      })
+    )
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('heading', { name: /Completar cadastro/i })).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
+    await user.click(screen.getByRole('button', { name: /Salvar e acessar/i }))
+
+    expect(
+      await screen.findByRole('heading', { name: /Cardapio para o intervalo/i })
+    ).toBeInTheDocument()
+    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validRa)
+    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validCpf)
   })
 
   it('opens password recovery from the login page', async () => {

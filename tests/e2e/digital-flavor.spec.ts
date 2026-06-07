@@ -1,11 +1,15 @@
 import { expect, test } from '@playwright/test'
 
 const technicalTerms = [/CRUD/i, /FIFO/i, /Queue/i, /Pilha/i, /ODS/i, /3s/i, /estrutura de dados/i]
+const validRa = '1234567-8'
+const validCpf = '529.982.247-25'
 
 test('client registers, orders, and sees their queue position', async ({ page }) => {
   await page.goto('/cadastro')
 
   await page.getByLabel(/Nome completo/i).fill('Aluno E2E')
+  await page.getByLabel(/^RA$/i).fill(validRa)
+  await page.getByLabel(/^CPF$/i).fill(validCpf)
   await page.getByLabel(/E-mail/i).fill(`aluno-${Date.now()}@escola.com`)
   await page.getByLabel(/Senha/i).fill('senha123')
   await page.getByRole('button', { name: /Cadastrar e entrar/i }).click()
@@ -29,6 +33,8 @@ test('admin manages order flow and reports in separate tabs', async ({ page }) =
 
   await page.goto('/cadastro')
   await page.getByLabel(/Nome completo/i).fill('Luiz Gustavo Lorencone Enz')
+  await page.getByLabel(/^RA$/i).fill(validRa)
+  await page.getByLabel(/^CPF$/i).fill(validCpf)
   await page.getByLabel(/E-mail/i).fill(email)
   await page.getByLabel(/Senha/i).fill('senha123')
   await page.getByRole('button', { name: /Cadastrar e entrar/i }).click()

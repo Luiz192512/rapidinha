@@ -62,6 +62,14 @@ import {
   updateCurrentUserPassword
 } from './lib/auth'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import {
+  formatCpf,
+  formatStudentRa,
+  isValidCpf,
+  isValidStudentRa,
+  normalizeCpf,
+  normalizeStudentRa
+} from './utils/documents'
 
 function cloneProduct(product: Product) {
   return new Product({
@@ -123,6 +131,8 @@ function sessionFromSupabaseUser(user: {
 }) {
   const email = user.email ?? ''
   const metadataName = user.user_metadata?.full_name ?? user.user_metadata?.name
+  const metadataStudentRa = user.user_metadata?.student_ra
+  const metadataCpf = user.user_metadata?.cpf
   const role = user.app_metadata?.role === 'admin' ? 'admin' : 'student'
 
   return {
@@ -130,7 +140,9 @@ function sessionFromSupabaseUser(user: {
     name: typeof metadataName === 'string' && metadataName.trim()
       ? metadataName
       : email.split('@')[0] || 'Cliente Digital Flavor',
-    email
+    email,
+    studentRa: typeof metadataStudentRa === 'string' ? metadataStudentRa : undefined,
+    cpf: typeof metadataCpf === 'string' ? metadataCpf : undefined
   } satisfies AuthSession
 }
 
@@ -416,11 +428,29 @@ export default function App() {
     }
   }
 
-  async function handleRegister(name: string, email: string, password: string) {
+  async function handleRegister(
+    name: string,
+    email: string,
+    password: string,
+    studentRa: string,
+    cpf: string
+  ) {
     setRegisterError(undefined)
+    const normalizedStudentRa = normalizeStudentRa(studentRa)
+    const normalizedCpf = normalizeCpf(cpf)
 
     if (name.trim().length < 3) {
       setRegisterError('Informe o nome completo do aluno.')
+      return
+    }
+
+    if (!isValidStudentRa(normalizedStudentRa)) {
+      setRegisterError('Informe um RA com 8 digitos no formato 0000000-0.')
+      return
+    }
+
+    if (!isValidCpf(normalizedCpf)) {
+      setRegisterError('Informe um CPF valido.')
       return
     }
 
@@ -433,7 +463,9 @@ export default function App() {
       const { data, error } = await signUpCustomer({
         fullName: name,
         email,
-        password
+        password,
+        studentRa: formatStudentRa(normalizedStudentRa),
+        cpf: formatCpf(normalizedCpf)
       })
 
       if (error) {
@@ -453,11 +485,19 @@ export default function App() {
       return
     }
 
-    const account = registerStudentAccount({ name, email, password })
+    const account = registerStudentAccount({
+      name,
+      email,
+      password,
+      studentRa: formatStudentRa(normalizedStudentRa),
+      cpf: formatCpf(normalizedCpf)
+    })
     const nextSession = {
       role: 'student',
       name: account.name,
-      email: account.email
+      email: account.email,
+      studentRa: account.studentRa,
+      cpf: account.cpf
     } satisfies AuthSession
 
     saveSession(nextSession)

@@ -4,11 +4,15 @@ export interface AuthSession {
   role: AuthRole
   name: string
   email: string
+  studentRa?: string
+  cpf?: string
 }
 
 export interface CustomerProfileDetails {
   name: string
   email: string
+  studentRa: string
+  cpf: string
   phone: string
   classroom: string
   shift: 'manha' | 'tarde' | 'noite'
@@ -33,6 +37,8 @@ export interface StudentAccount {
   name: string
   email: string
   password: string
+  studentRa: string
+  cpf: string
 }
 
 export const adminCredential = {
@@ -96,7 +102,9 @@ export function registerStudentAccount(account: StudentAccount) {
   const nextAccount = {
     name: account.name.trim(),
     email,
-    password: account.password
+    password: account.password,
+    studentRa: account.studentRa,
+    cpf: account.cpf
   }
 
   if (canUseStorage()) {
@@ -139,7 +147,9 @@ export function authenticateUser(email: string, password: string) {
   return {
     role: 'student',
     name: student.name,
-    email: student.email
+    email: student.email,
+    studentRa: student.studentRa,
+    cpf: student.cpf
   } satisfies AuthSession
 }
 
@@ -172,6 +182,8 @@ export function defaultCustomerProfile(session?: AuthSession): CustomerProfileDe
   return {
     name: session?.name ?? '',
     email: session?.email ?? '',
+    studentRa: session?.studentRa ?? '',
+    cpf: session?.cpf ?? '',
     phone: '',
     classroom: '',
     shift: 'manha'

@@ -4,6 +4,7 @@ import { Chrome, Loader2, LockKeyhole, UserPlus, Utensils } from 'lucide-react'
 
 import { Button, Panel, StatusBadge } from '../../components/ui'
 import { adminCredential } from '../../auth/demoAuth'
+import { formatCpf, formatStudentRa } from '../../utils/documents'
 
 interface LoginPageProps {
   errorMessage?: string
@@ -13,7 +14,13 @@ interface LoginPageProps {
 
 interface RegisterPageProps {
   errorMessage?: string
-  onRegister: (name: string, email: string, password: string) => void
+  onRegister: (
+    name: string,
+    email: string,
+    password: string,
+    studentRa: string,
+    cpf: string
+  ) => void
   onGoogleLogin: () => void
 }
 
@@ -119,7 +126,9 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
     onRegister(
       String(formData.get('name') ?? ''),
       String(formData.get('email') ?? ''),
-      String(formData.get('password') ?? '')
+      String(formData.get('password') ?? ''),
+      String(formData.get('studentRa') ?? ''),
+      String(formData.get('cpf') ?? '')
     )
   }
 
@@ -147,6 +156,36 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
             name="name"
             autoComplete="name"
             placeholder="Nome completo"
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          RA
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="studentRa"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="0000000-0"
+            maxLength={9}
+            onInput={(event) => {
+              event.currentTarget.value = formatStudentRa(event.currentTarget.value)
+            }}
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          CPF
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="cpf"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="000.000.000-00"
+            maxLength={14}
+            onInput={(event) => {
+              event.currentTarget.value = formatCpf(event.currentTarget.value)
+            }}
             required
           />
         </label>

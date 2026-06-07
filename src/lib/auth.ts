@@ -11,11 +11,15 @@ export async function signInWithPassword(email: string, password: string) {
 export async function signUpCustomer({
   email,
   password,
-  fullName
+  fullName,
+  studentRa,
+  cpf
 }: {
   email: string
   password: string
   fullName: string
+  studentRa: string
+  cpf: string
 }) {
   if (!supabase) {
     throw new Error('Supabase is not configured')
@@ -26,7 +30,9 @@ export async function signUpCustomer({
     password,
     options: {
       data: {
-        full_name: fullName
+        full_name: fullName,
+        student_ra: studentRa,
+        cpf
       }
     }
   })

@@ -7,6 +7,8 @@ type PaymentMethod = 'pix' | 'card' | 'cash'
 interface PreferencesPayload {
   profile?: {
     name?: string
+    studentRa?: string
+    cpf?: string
     phone?: string
     classroom?: string
     shift?: 'manha' | 'tarde' | 'noite'
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
 
   if (req.method === 'GET') {
     const [{ data: profile }, { data: preferences }, { data: paymentMethods }] = await Promise.all([
-      supabase.from('profiles').select('full_name,email').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('full_name,email,student_ra,cpf').eq('id', user.id).maybeSingle(),
       supabase.from('customer_preferences').select('*').eq('profile_id', user.id).maybeSingle(),
       supabase
         .from('customer_payment_methods')
@@ -81,12 +83,16 @@ Deno.serve(async (req) => {
   const body = (await req.json()) as PreferencesPayload
   const now = new Date().toISOString()
   const profileName = body.profile?.name?.trim()
+  const studentRa = body.profile?.studentRa?.trim()
+  const cpf = body.profile?.cpf?.trim()
 
-  if (profileName) {
+  if (profileName || studentRa || cpf) {
     const { error } = await supabase
       .from('profiles')
       .update({
-        full_name: profileName,
+        ...(profileName ? { full_name: profileName } : {}),
+        ...(studentRa ? { student_ra: studentRa } : {}),
+        ...(cpf ? { cpf } : {}),
         updated_at: now
       })
       .eq('id', user.id)

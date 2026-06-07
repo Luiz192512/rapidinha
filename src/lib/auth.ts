@@ -49,6 +49,32 @@ export async function signInWithGoogle() {
   })
 }
 
+export async function sendPasswordResetEmail(email: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
+
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/nova-senha`
+  })
+}
+
+export async function updateCurrentUserPassword(password: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
+
+  return supabase.auth.updateUser({ password })
+}
+
+export async function exchangeAuthCodeForSession(code: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
+
+  return supabase.auth.exchangeCodeForSession(code)
+}
+
 export async function signOut() {
   if (!supabase) {
     return

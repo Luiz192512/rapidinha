@@ -17,6 +17,18 @@ interface RegisterPageProps {
   onGoogleLogin: () => void
 }
 
+interface ForgotPasswordPageProps {
+  errorMessage?: string
+  successMessage?: string
+  onPasswordResetRequest: (email: string) => void
+}
+
+interface UpdatePasswordPageProps {
+  errorMessage?: string
+  successMessage?: string
+  onPasswordUpdate: (password: string, confirmation: string) => void
+}
+
 export function LoginPage({ errorMessage, onLogin, onGoogleLogin }: LoginPageProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -53,7 +65,12 @@ export function LoginPage({ errorMessage, onLogin, onGoogleLogin }: LoginPagePro
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Senha
+          <span className="flex items-center justify-between gap-3">
+            Senha
+            <Link className="text-xs font-bold text-orange-600 underline" to="/recuperar-senha">
+              Esqueci minha senha
+            </Link>
+          </span>
           <input
             className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
             name="password"
@@ -179,16 +196,150 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
   )
 }
 
-export function OAuthCallbackPage() {
+export function ForgotPasswordPage({
+  errorMessage,
+  successMessage,
+  onPasswordResetRequest
+}: ForgotPasswordPageProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    onPasswordResetRequest(String(formData.get('email') ?? ''))
+  }
+
+  return (
+    <AuthLayout
+      title="Recuperar senha"
+      description="Informe seu e-mail de cliente para receber o link de redefinicao."
+    >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          E-mail
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="seu-email@escola.com"
+            required
+          />
+        </label>
+
+        {successMessage ? (
+          <div className="rounded-md bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+            {successMessage}
+          </div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <Button type="submit" variant="secondary">
+          Enviar link de recuperacao
+        </Button>
+      </form>
+
+      <p className="mt-5 text-center text-sm text-slate-600">
+        Lembrou a senha?{' '}
+        <Link className="font-bold text-blue-700 underline" to="/login">
+          Voltar para login
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}
+
+export function UpdatePasswordPage({
+  errorMessage,
+  successMessage,
+  onPasswordUpdate
+}: UpdatePasswordPageProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    onPasswordUpdate(
+      String(formData.get('password') ?? ''),
+      String(formData.get('confirmation') ?? '')
+    )
+  }
+
+  return (
+    <AuthLayout
+      title="Definir nova senha"
+      description="Crie uma senha nova para voltar a acessar seus pedidos com seguranca."
+    >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          Nova senha
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            placeholder="Minimo 6 caracteres"
+            required
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          Confirmar nova senha
+          <input
+            className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-blue-500"
+            name="confirmation"
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            placeholder="Digite novamente"
+            required
+          />
+        </label>
+
+        {successMessage ? (
+          <div className="rounded-md bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+            {successMessage}
+          </div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <Button type="submit" variant="secondary">
+          Atualizar senha
+        </Button>
+      </form>
+
+      <p className="mt-5 text-center text-sm text-slate-600">
+        Ja esta tudo certo?{' '}
+        <Link className="font-bold text-orange-600 underline" to="/">
+          Ir para o cardapio
+        </Link>
+      </p>
+    </AuthLayout>
+  )
+}
+
+export function OAuthCallbackPage({ errorMessage }: { errorMessage?: string }) {
   return (
     <AuthLayout
       title="Conectando sua conta"
       description="Estamos finalizando seu acesso para abrir o Digital Flavor."
     >
-      <div className="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-950">
-        <Loader2 className="animate-spin text-blue-700" size={20} aria-hidden="true" />
-        Aguarde um instante.
-      </div>
+      {errorMessage ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {errorMessage}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-950">
+          <Loader2 className="animate-spin text-blue-700" size={20} aria-hidden="true" />
+          Aguarde um instante.
+        </div>
+      )}
     </AuthLayout>
   )
 }

@@ -161,4 +161,33 @@ describe('Digital Flavor app', () => {
     await user.click(screen.getByRole('button', { name: /Adicionar PIX/i }))
     expect(screen.getByText(/PIX salvo/i)).toBeInTheDocument()
   })
+
+  it('opens password recovery from the login page', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('link', { name: /Esqueci minha senha/i }))
+
+    expect(screen.getByRole('heading', { name: /Recuperar senha/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enviar link de recuperacao/i })).toBeInTheDocument()
+  })
+
+  it('validates password confirmation before updating a reset password', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/nova-senha']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    await user.type(screen.getByLabelText(/^Nova senha$/i), 'senha123')
+    await user.type(screen.getByLabelText(/Confirmar nova senha/i), 'senha456')
+    await user.click(screen.getByRole('button', { name: /Atualizar senha/i }))
+
+    expect(screen.getByText(/As senhas digitadas nao conferem/i)).toBeInTheDocument()
+  })
 })

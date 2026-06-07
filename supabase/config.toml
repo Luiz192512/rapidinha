@@ -163,10 +163,14 @@ site_url = "http://127.0.0.1:5173"
 additional_redirect_urls = [
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5173/auth/callback",
+  "http://127.0.0.1:5173/nova-senha",
   "http://localhost:5173",
   "http://localhost:5173/auth/callback",
+  "http://localhost:5173/nova-senha",
   "https://digital-flavor-git-luiz-gustavo-dig-26a23a-luiz192512s-projects.vercel.app",
-  "https://digital-flavor-git-luiz-gustavo-dig-26a23a-luiz192512s-projects.vercel.app/auth/callback"
+  "https://digital-flavor-git-luiz-gustavo-dig-26a23a-luiz192512s-projects.vercel.app/auth/callback",
+  "https://digital-flavor-git-luiz-gustavo-dig-26a23a-luiz192512s-projects.vercel.app/nova-senha",
+  "https://*-luiz192512s-projects.vercel.app/**"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

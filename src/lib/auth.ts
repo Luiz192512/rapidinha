@@ -73,6 +73,14 @@ export async function updateCurrentUserPassword(password: string) {
   return supabase.auth.updateUser({ password })
 }
 
+export async function updateCurrentUserMetadata(metadata: Record<string, string>) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
+
+  return supabase.auth.updateUser({ data: metadata })
+}
+
 export async function exchangeAuthCodeForSession(code: string) {
   if (!supabase) {
     throw new Error('Supabase is not configured')

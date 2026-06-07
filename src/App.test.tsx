@@ -31,7 +31,9 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/Senha/i), 'senha123')
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
-    expect(screen.getByRole('heading', { name: /Cardapio para o intervalo/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Cardapio para o intervalo/i })
+    ).toBeInTheDocument()
     technicalTerms.forEach((term) => {
       expect(screen.queryByText(term)).not.toBeInTheDocument()
     })
@@ -195,6 +197,36 @@ describe('Digital Flavor app', () => {
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
     expect(screen.getByText(/Informe um CPF valido/i)).toBeInTheDocument()
+  })
+
+  it('asks Google customers to complete RA and CPF before opening the menu', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(
+      'digital-flavor-session',
+      JSON.stringify({
+        role: 'student',
+        name: 'Aluno Google',
+        email: 'google@escola.com'
+      })
+    )
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('heading', { name: /Completar cadastro/i })).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
+    await user.click(screen.getByRole('button', { name: /Salvar e acessar/i }))
+
+    expect(
+      await screen.findByRole('heading', { name: /Cardapio para o intervalo/i })
+    ).toBeInTheDocument()
+    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validRa)
+    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validCpf)
   })
 
   it('opens password recovery from the login page', async () => {

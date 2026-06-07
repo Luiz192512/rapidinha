@@ -11,7 +11,7 @@ begin
   ) then
     alter table public.profiles
       add constraint profiles_student_ra_format
-      check (student_ra is null or student_ra ~ '^[0-9]{7}-[0-9]$');
+      check (student_ra is null or student_ra ~ '^[0-9]{8}-[0-9]$');
   end if;
 
   if not exists (

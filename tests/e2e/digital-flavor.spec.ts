@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 const technicalTerms = [/CRUD/i, /FIFO/i, /Queue/i, /Pilha/i, /ODS/i, /3s/i, /estrutura de dados/i]
-const validRa = '1234567-8'
+const validRa = '12345678-9'
 const validCpf = '529.982.247-25'
+const validPassword = 'senha1234'
 
 test('client registers, orders, and sees their queue position', async ({ page }) => {
   await page.goto('/cadastro')
@@ -11,7 +12,7 @@ test('client registers, orders, and sees their queue position', async ({ page })
   await page.getByLabel(/^RA$/i).fill(validRa)
   await page.getByLabel(/^CPF$/i).fill(validCpf)
   await page.getByLabel(/E-mail/i).fill(`aluno-${Date.now()}@escola.com`)
-  await page.getByLabel(/Senha/i).fill('senha123')
+  await page.getByLabel(/Senha/i).fill(validPassword)
   await page.getByRole('button', { name: /Cadastrar e entrar/i }).click()
 
   await expect(page.getByRole('heading', { name: /Cardapio para o intervalo/i })).toBeVisible()
@@ -36,7 +37,7 @@ test('admin manages order flow and reports in separate tabs', async ({ page }) =
   await page.getByLabel(/^RA$/i).fill(validRa)
   await page.getByLabel(/^CPF$/i).fill(validCpf)
   await page.getByLabel(/E-mail/i).fill(email)
-  await page.getByLabel(/Senha/i).fill('senha123')
+  await page.getByLabel(/Senha/i).fill(validPassword)
   await page.getByRole('button', { name: /Cadastrar e entrar/i }).click()
   await page.getByRole('button', { name: /Adicionar/i }).first().click()
   await page.getByRole('button', { name: /Confirmar pedido/i }).click()

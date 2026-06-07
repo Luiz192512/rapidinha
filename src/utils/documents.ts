@@ -7,17 +7,17 @@ export function normalizeStudentRa(value: string) {
 }
 
 export function formatStudentRa(value: string) {
-  const digits = normalizeStudentRa(value).slice(0, 8)
+  const digits = normalizeStudentRa(value).slice(0, 9)
 
-  if (digits.length <= 7) {
+  if (digits.length <= 8) {
     return digits
   }
 
-  return `${digits.slice(0, 7)}-${digits.slice(7)}`
+  return `${digits.slice(0, 8)}-${digits.slice(8)}`
 }
 
 export function isValidStudentRa(value: string) {
-  return normalizeStudentRa(value).length === 8
+  return normalizeStudentRa(value).length === 9
 }
 
 export function normalizeCpf(value: string) {

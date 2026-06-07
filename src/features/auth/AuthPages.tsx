@@ -214,8 +214,8 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={6}
-            placeholder="Minimo 6 caracteres"
+            minLength={8}
+            placeholder="Minimo 8 caracteres"
             required
           />
         </label>
@@ -400,8 +400,8 @@ export function UpdatePasswordPage({
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={6}
-            placeholder="Minimo 6 caracteres"
+            minLength={8}
+            placeholder="Minimo 8 caracteres"
             required
           />
         </label>
@@ -412,7 +412,7 @@ export function UpdatePasswordPage({
             name="confirmation"
             type="password"
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             placeholder="Digite novamente"
             required
           />

@@ -7,8 +7,9 @@ import App from './App'
 import { adminCredential } from './auth/demoAuth'
 
 const technicalTerms = [/CRUD/i, /FIFO/i, /Queue/i, /Pilha/i, /ODS/i, /3s/i, /estrutura de dados/i]
-const validRa = '1234567-8'
+const validRa = '12345678-9'
 const validCpf = '529.982.247-25'
+const validPassword = 'senha1234'
 
 describe('Digital Flavor app', () => {
   beforeEach(() => {
@@ -28,7 +29,7 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/^RA$/i), validRa)
     await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'aluno@escola.com')
-    await user.type(screen.getByLabelText(/Senha/i), 'senha123')
+    await user.type(screen.getByLabelText(/Senha/i), validPassword)
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
     expect(
@@ -59,7 +60,7 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/^RA$/i), validRa)
     await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'luiz@escola.com')
-    await user.type(screen.getByLabelText(/Senha/i), 'senha123')
+    await user.type(screen.getByLabelText(/Senha/i), validPassword)
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
     await user.click(screen.getAllByRole('button', { name: /Adicionar/i })[0])
     await user.click(screen.getByRole('button', { name: /Confirmar pedido/i }))
@@ -149,7 +150,7 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/^RA$/i), validRa)
     await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
     await user.type(screen.getByLabelText(/E-mail/i), 'conta@escola.com')
-    await user.type(screen.getByLabelText(/Senha/i), 'senha123')
+    await user.type(screen.getByLabelText(/Senha/i), validPassword)
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
     await user.click(screen.getByRole('button', { name: /Aluno/i }))
@@ -186,10 +187,10 @@ describe('Digital Flavor app', () => {
     await user.type(screen.getByLabelText(/^RA$/i), '123')
     await user.type(screen.getByLabelText(/^CPF$/i), '111.111.111-11')
     await user.type(screen.getByLabelText(/E-mail/i), 'documento@escola.com')
-    await user.type(screen.getByLabelText(/Senha/i), 'senha123')
+    await user.type(screen.getByLabelText(/Senha/i), validPassword)
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
-    expect(screen.getByText(/Informe um RA com 8 digitos/i)).toBeInTheDocument()
+    expect(screen.getByText(/Informe um RA com 9 digitos/i)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /Cardapio para o intervalo/i })).not.toBeInTheDocument()
 
     await user.clear(screen.getByLabelText(/^RA$/i))
@@ -197,6 +198,25 @@ describe('Digital Flavor app', () => {
     await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
 
     expect(screen.getByText(/Informe um CPF valido/i)).toBeInTheDocument()
+  })
+
+  it('requires at least 8 password characters during client registration', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/cadastro']}>
+        <App />
+      </MemoryRouter>
+    )
+
+    await user.type(screen.getByLabelText(/Nome completo/i), 'Aluno Senha')
+    await user.type(screen.getByLabelText(/^RA$/i), validRa)
+    await user.type(screen.getByLabelText(/^CPF$/i), validCpf)
+    await user.type(screen.getByLabelText(/E-mail/i), 'senha-curta@escola.com')
+    await user.type(screen.getByLabelText(/Senha/i), '1234567')
+    await user.click(screen.getByRole('button', { name: /Cadastrar e entrar/i }))
+
+    expect(screen.getByText(/A senha precisa ter pelo menos 8 caracteres/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Cardapio para o intervalo/i })).not.toBeInTheDocument()
   })
 
   it('asks Google customers to complete RA and CPF before opening the menu', async () => {
@@ -251,8 +271,8 @@ describe('Digital Flavor app', () => {
       </MemoryRouter>
     )
 
-    await user.type(screen.getByLabelText(/^Nova senha$/i), 'senha123')
-    await user.type(screen.getByLabelText(/Confirmar nova senha/i), 'senha456')
+    await user.type(screen.getByLabelText(/^Nova senha$/i), 'senha1234')
+    await user.type(screen.getByLabelText(/Confirmar nova senha/i), 'senha4567')
     await user.click(screen.getByRole('button', { name: /Atualizar senha/i }))
 
     expect(screen.getByText(/As senhas digitadas nao conferem/i)).toBeInTheDocument()

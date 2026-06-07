@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import {
+  adminCredential,
   authenticateUser,
   clearSession,
   defaultCustomerPreferences,
@@ -38,14 +39,28 @@ import {
   ProfileDetailsPage
 } from './features/account/AccountPages'
 import { CustomerOrdering } from './features/customer/CustomerOrdering'
-import { LoginPage, OAuthCallbackPage, RegisterPage } from './features/auth/AuthPages'
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  OAuthCallbackPage,
+  RegisterPage,
+  UpdatePasswordPage
+} from './features/auth/AuthPages'
 import { AppHeader } from './features/layout/AppHeader'
 import {
   ManagementWorkspace,
   type ProductAdjustmentDraft
 } from './features/management/ManagementWorkspace'
 import { saveCustomerExperience } from './lib/edgeFunctions'
-import { signInWithGoogle, signOut as signOutFromSupabase } from './lib/auth'
+import {
+  exchangeAuthCodeForSession,
+  sendPasswordResetEmail,
+  signInWithGoogle,
+  signInWithPassword,
+  signOut as signOutFromSupabase,
+  signUpCustomer,
+  updateCurrentUserPassword
+} from './lib/auth'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 function cloneProduct(product: Product) {
@@ -119,12 +134,22 @@ function sessionFromSupabaseUser(user: {
   } satisfies AuthSession
 }
 
+const shouldUseSupabaseCustomerPasswordAuth =
+  isSupabaseConfigured &&
+  (import.meta.env.PROD || import.meta.env.VITE_SUPABASE_PASSWORD_AUTH === 'true')
+
 export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
+  const handledAuthCode = useRef<string | undefined>(undefined)
   const [session, setSession] = useState<AuthSession | undefined>(() => readSession())
   const [loginError, setLoginError] = useState<string>()
   const [registerError, setRegisterError] = useState<string>()
+  const [passwordResetError, setPasswordResetError] = useState<string>()
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState<string>()
+  const [passwordUpdateError, setPasswordUpdateError] = useState<string>()
+  const [passwordUpdateSuccess, setPasswordUpdateSuccess] = useState<string>()
+  const [authCallbackError, setAuthCallbackError] = useState<string>()
   const [products, setProducts] = useState(() => seedProducts.map(cloneProduct))
   const [inventory, setInventory] = useState(() => seedInventory.map(cloneInventoryItem))
   const [cart, setCart] = useState(() => new Cart())
@@ -172,6 +197,42 @@ export default function App() {
       }
     }
 
+    if (location.pathname === '/auth/callback') {
+      const params = new URLSearchParams(location.search)
+      const callbackError = params.get('error_description') ?? params.get('error')
+      const code = params.get('code')
+
+      if (callbackError) {
+        setAuthCallbackError(callbackError)
+      } else if (code && handledAuthCode.current !== code) {
+        handledAuthCode.current = code
+        setAuthCallbackError(undefined)
+
+        void exchangeAuthCodeForSession(code)
+          .then(({ data, error }) => {
+            if (!active) {
+              return
+            }
+
+            if (error) {
+              setAuthCallbackError(error.message)
+              return
+            }
+
+            if (data.session?.user) {
+              applySupabaseSession(sessionFromSupabaseUser(data.session.user))
+            }
+          })
+          .catch((error: unknown) => {
+            if (active) {
+              setAuthCallbackError(
+                error instanceof Error ? error.message : 'Nao foi possivel concluir o login.'
+              )
+            }
+          })
+      }
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (active && data.session?.user) {
         applySupabaseSession(sessionFromSupabaseUser(data.session.user))
@@ -188,7 +249,7 @@ export default function App() {
       active = false
       data.subscription.unsubscribe()
     }
-  }, [location.pathname, navigate])
+  }, [location.pathname, location.search, navigate])
 
   useEffect(() => {
     if (!session || session.role !== 'student') {
@@ -288,8 +349,43 @@ export default function App() {
     }
   }, [completedOrders, latestOrderId, preparingOrders, queue])
 
-  function handleLogin(email: string, password: string) {
+  async function handleLogin(email: string, password: string) {
     setLoginError(undefined)
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (normalizedEmail === adminCredential.email) {
+      const result = authenticateUser(email, password)
+
+      if ('error' in result) {
+        setLoginError(result.message)
+        return
+      }
+
+      void signOutFromSupabase()
+      saveSession(result)
+      setSession(result)
+      navigate('/admin', { replace: true })
+      return
+    }
+
+    if (shouldUseSupabaseCustomerPasswordAuth) {
+      const { data, error } = await signInWithPassword(email, password)
+
+      if (error) {
+        setLoginError(error.message)
+        return
+      }
+
+      if (data.user) {
+        const nextSession = sessionFromSupabaseUser(data.user)
+        saveSession(nextSession)
+        setSession(nextSession)
+        navigate('/', { replace: true })
+      }
+
+      return
+    }
+
     const result = authenticateUser(email, password)
 
     if ('error' in result) {
@@ -297,13 +393,9 @@ export default function App() {
       return
     }
 
-    if (result.role === 'admin') {
-      void signOutFromSupabase()
-    }
-
     saveSession(result)
     setSession(result)
-    navigate(result.role === 'admin' ? '/admin' : '/', { replace: true })
+    navigate('/', { replace: true })
   }
 
   async function handleGoogleLogin() {
@@ -324,7 +416,7 @@ export default function App() {
     }
   }
 
-  function handleRegister(name: string, email: string, password: string) {
+  async function handleRegister(name: string, email: string, password: string) {
     setRegisterError(undefined)
 
     if (name.trim().length < 3) {
@@ -334,6 +426,30 @@ export default function App() {
 
     if (password.length < 6) {
       setRegisterError('A senha precisa ter pelo menos 6 caracteres.')
+      return
+    }
+
+    if (shouldUseSupabaseCustomerPasswordAuth) {
+      const { data, error } = await signUpCustomer({
+        fullName: name,
+        email,
+        password
+      })
+
+      if (error) {
+        setRegisterError(error.message)
+        return
+      }
+
+      if (data.user && data.session) {
+        const nextSession = sessionFromSupabaseUser(data.user)
+        saveSession(nextSession)
+        setSession(nextSession)
+        navigate('/', { replace: true })
+        return
+      }
+
+      setRegisterError('Cadastro criado. Confirme seu e-mail antes de entrar.')
       return
     }
 
@@ -347,6 +463,59 @@ export default function App() {
     saveSession(nextSession)
     setSession(nextSession)
     navigate('/', { replace: true })
+  }
+
+  async function handlePasswordResetRequest(email: string) {
+    setPasswordResetError(undefined)
+    setPasswordResetSuccess(undefined)
+
+    if (!email.trim()) {
+      setPasswordResetError('Informe o e-mail cadastrado.')
+      return
+    }
+
+    if (!isSupabaseConfigured) {
+      setPasswordResetError('Recuperacao de senha depende do Supabase configurado.')
+      return
+    }
+
+    const { error } = await sendPasswordResetEmail(email)
+
+    if (error) {
+      setPasswordResetError(error.message)
+      return
+    }
+
+    setPasswordResetSuccess('Enviamos um link para redefinir sua senha.')
+  }
+
+  async function handlePasswordUpdate(password: string, confirmation: string) {
+    setPasswordUpdateError(undefined)
+    setPasswordUpdateSuccess(undefined)
+
+    if (password.length < 6) {
+      setPasswordUpdateError('A senha precisa ter pelo menos 6 caracteres.')
+      return
+    }
+
+    if (password !== confirmation) {
+      setPasswordUpdateError('As senhas digitadas nao conferem.')
+      return
+    }
+
+    if (!isSupabaseConfigured) {
+      setPasswordUpdateError('Atualizacao de senha depende do Supabase configurado.')
+      return
+    }
+
+    const { error } = await updateCurrentUserPassword(password)
+
+    if (error) {
+      setPasswordUpdateError(error.message)
+      return
+    }
+
+    setPasswordUpdateSuccess('Senha atualizada com sucesso.')
   }
 
   function handleLogout() {
@@ -814,7 +983,31 @@ export default function App() {
           )
         }
       />
-      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      <Route
+        path="/recuperar-senha"
+        element={
+          session ? (
+            <Navigate to={session.role === 'admin' ? '/admin' : '/'} replace />
+          ) : (
+            <ForgotPasswordPage
+              errorMessage={passwordResetError}
+              successMessage={passwordResetSuccess}
+              onPasswordResetRequest={handlePasswordResetRequest}
+            />
+          )
+        }
+      />
+      <Route
+        path="/nova-senha"
+        element={
+          <UpdatePasswordPage
+            errorMessage={passwordUpdateError}
+            successMessage={passwordUpdateSuccess}
+            onPasswordUpdate={handlePasswordUpdate}
+          />
+        }
+      />
+      <Route path="/auth/callback" element={<OAuthCallbackPage errorMessage={authCallbackError} />} />
       <Route
         path="/configuracoes"
         element={studentAccountPage(

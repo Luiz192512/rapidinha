@@ -463,7 +463,7 @@ export default function App() {
     }
 
     if (!isValidStudentRa(normalizedStudentRa)) {
-      setRegisterError('Informe um RA com 8 digitos no formato 0000000-0.')
+      setRegisterError('Informe um RA com 9 digitos no formato 00000000-0.')
       return
     }
 
@@ -472,8 +472,8 @@ export default function App() {
       return
     }
 
-    if (password.length < 6) {
-      setRegisterError('A senha precisa ter pelo menos 6 caracteres.')
+    if (password.length < 8) {
+      setRegisterError('A senha precisa ter pelo menos 8 caracteres.')
       return
     }
 
@@ -535,7 +535,7 @@ export default function App() {
     const normalizedCpf = normalizeCpf(cpf)
 
     if (!isValidStudentRa(normalizedStudentRa)) {
-      setCompleteRegistrationError('Informe um RA com 8 digitos no formato 0000000-0.')
+      setCompleteRegistrationError('Informe um RA com 9 digitos no formato 00000000-0.')
       return
     }
 
@@ -633,8 +633,8 @@ export default function App() {
     setPasswordUpdateError(undefined)
     setPasswordUpdateSuccess(undefined)
 
-    if (password.length < 6) {
-      setPasswordUpdateError('A senha precisa ter pelo menos 6 caracteres.')
+    if (password.length < 8) {
+      setPasswordUpdateError('A senha precisa ter pelo menos 8 caracteres.')
       return
     }
 

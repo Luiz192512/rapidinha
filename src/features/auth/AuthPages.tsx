@@ -173,8 +173,8 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
             name="studentRa"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="0000000-0"
-            maxLength={9}
+            placeholder="00000000-0"
+            maxLength={10}
             onInput={(event) => {
               event.currentTarget.value = formatStudentRa(event.currentTarget.value)
             }}
@@ -214,8 +214,8 @@ export function RegisterPage({ errorMessage, onRegister, onGoogleLogin }: Regist
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={6}
-            placeholder="Minimo 6 caracteres"
+            minLength={8}
+            placeholder="Minimo 8 caracteres"
             required
           />
         </label>
@@ -271,8 +271,8 @@ export function CompleteRegistrationPage({
             name="studentRa"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="0000000-0"
-            maxLength={9}
+            placeholder="00000000-0"
+            maxLength={10}
             onInput={(event) => {
               event.currentTarget.value = formatStudentRa(event.currentTarget.value)
             }}
@@ -400,8 +400,8 @@ export function UpdatePasswordPage({
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={6}
-            placeholder="Minimo 6 caracteres"
+            minLength={8}
+            placeholder="Minimo 8 caracteres"
             required
           />
         </label>
@@ -412,7 +412,7 @@ export function UpdatePasswordPage({
             name="confirmation"
             type="password"
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             placeholder="Digite novamente"
             required
           />

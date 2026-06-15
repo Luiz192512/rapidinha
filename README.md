@@ -1,6 +1,6 @@
-# Digital Flavor
+# Rapidinha
 
-Sistema web para pedidos antecipados e gestao sustentavel de cantinas escolares.
+Sistema web para pedidos antecipados, retirada organizada e gestao sustentavel de cantinas escolares.
 
 ## Stack
 
@@ -16,7 +16,7 @@ Sistema web para pedidos antecipados e gestao sustentavel de cantinas escolares.
 - Modelagem orientada a objetos em `src/domain`.
 - Estruturas de dados: lista, fila FIFO e pilha.
 - Proposta de valor: reduzir filas, controlar estoque e diminuir desperdicio de alimentos.
-- Estudo das cores aplicado ao design: verde para sustentabilidade, azul para operacao, laranja para acao/compra e vermelho para risco.
+- Estudo das cores aplicado ao design: vermelho como cor principal, vinho para identidade, cinza claro para superficies e dourado como apoio.
 
 ## Como rodar
 

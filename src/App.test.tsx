@@ -11,10 +11,10 @@ const validRa = '12345678-9'
 const validCpf = '529.982.247-25'
 const validPassword = 'senha1234'
 
-describe('Digital Flavor app', () => {
+describe('Rapidinha app', () => {
   beforeEach(() => {
-    window.localStorage.removeItem('digital-flavor-students')
-    window.localStorage.removeItem('digital-flavor-session')
+    window.localStorage.removeItem('rapidinha-students')
+    window.localStorage.removeItem('rapidinha-session')
   })
 
   it('registers a client, creates an order, and shows the client position', async () => {
@@ -72,7 +72,7 @@ describe('Digital Flavor app', () => {
     await user.click(screen.getByRole('button', { name: /^Entrar$/i }))
 
     expect(screen.getByText(/Luiz Gustavo Lorencone Enz/i)).toBeInTheDocument()
-    expect(screen.queryByText(/Aluno Digital Flavor/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Aluno Rapidinha/i)).not.toBeInTheDocument()
   })
 
   it('keeps called orders visible and marks the selected order as ready', async () => {
@@ -222,7 +222,7 @@ describe('Digital Flavor app', () => {
   it('asks Google customers to complete RA and CPF before opening the menu', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem(
-      'digital-flavor-session',
+      'rapidinha-session',
       JSON.stringify({
         role: 'student',
         name: 'Aluno Google',
@@ -245,8 +245,8 @@ describe('Digital Flavor app', () => {
     expect(
       await screen.findByRole('heading', { name: /Cardapio para o intervalo/i })
     ).toBeInTheDocument()
-    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validRa)
-    expect(window.localStorage.getItem('digital-flavor-session')).toContain(validCpf)
+    expect(window.localStorage.getItem('rapidinha-session')).toContain(validRa)
+    expect(window.localStorage.getItem('rapidinha-session')).toContain(validCpf)
   })
 
   it('opens password recovery from the login page', async () => {

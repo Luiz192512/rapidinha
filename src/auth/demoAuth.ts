@@ -46,11 +46,11 @@ export const adminCredential = {
   password: 'Admin@2026'
 } as const
 
-const studentsKey = 'digital-flavor-students'
-const sessionKey = 'digital-flavor-session'
-const profileKeyPrefix = 'digital-flavor-profile'
-const preferencesKeyPrefix = 'digital-flavor-preferences'
-const paymentMethodsKeyPrefix = 'digital-flavor-payment-methods'
+const studentsKey = 'rapidinha-students'
+const sessionKey = 'rapidinha-session'
+const profileKeyPrefix = 'rapidinha-profile'
+const preferencesKeyPrefix = 'rapidinha-preferences'
+const paymentMethodsKeyPrefix = 'rapidinha-payment-methods'
 
 function canUseStorage() {
   return typeof window !== 'undefined' && Boolean(window.localStorage)
@@ -123,7 +123,7 @@ export function authenticateUser(email: string, password: string) {
   ) {
     return {
       role: 'admin',
-      name: 'Administrador Digital Flavor',
+      name: 'Administrador Rapidinha',
       email: adminCredential.email
     } satisfies AuthSession
   }

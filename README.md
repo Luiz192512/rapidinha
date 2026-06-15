@@ -70,10 +70,16 @@ O projeto inclui `vercel.json` para build Vite:
 
 ## Deploy no GitHub Pages
 
-O workflow `.github/workflows/deploy.yml` publica o build em:
+O site esta publicado em:
 
 ```text
 https://luiz192512.github.io/rapidinha/
 ```
 
-O deploy roda automaticamente a cada push na branch `main` e tambem pode ser disparado manualmente em GitHub Actions.
+Para gerar o build com o caminho correto do GitHub Pages:
+
+```bash
+npm run build:github-pages
+```
+
+O GitHub Pages usa a branch `gh-pages` como origem estatica do site.

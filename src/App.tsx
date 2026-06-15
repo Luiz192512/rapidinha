@@ -141,7 +141,7 @@ function sessionFromSupabaseUser(user: {
     role,
     name: typeof metadataName === 'string' && metadataName.trim()
       ? metadataName
-      : email.split('@')[0] || 'Cliente Digital Flavor',
+      : email.split('@')[0] || 'Cliente Rapidinha',
     email,
     studentRa: typeof metadataStudentRa === 'string' ? metadataStudentRa : undefined,
     cpf: typeof metadataCpf === 'string' ? metadataCpf : undefined
@@ -780,8 +780,8 @@ export default function App() {
       const checkout = new CheckoutService(stockService)
       const order = checkout.createOrder({
         cart,
-        customerId: session?.email ?? 'cliente-digital-flavor',
-        customerName: session?.name ?? 'Cliente Digital Flavor',
+        customerId: session?.email ?? 'cliente-rapidinha',
+        customerName: session?.name ?? 'Cliente Rapidinha',
         paymentMethod,
         pickupTime
       })

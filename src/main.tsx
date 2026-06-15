@@ -7,9 +7,11 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App'
 import './styles.css'
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <App />
       <Analytics />
       <SpeedInsights />

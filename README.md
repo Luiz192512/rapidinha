@@ -67,3 +67,13 @@ O projeto inclui `vercel.json` para build Vite:
 - build command: `npm run build`
 - output directory: `dist`
 - environment variables: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+
+## Deploy no GitHub Pages
+
+O workflow `.github/workflows/deploy.yml` publica o build em:
+
+```text
+https://luiz192512.github.io/rapidinha/
+```
+
+O deploy roda automaticamente a cada push na branch `main` e tambem pode ser disparado manualmente em GitHub Actions.

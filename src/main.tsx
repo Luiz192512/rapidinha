@@ -7,14 +7,15 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App'
 import './styles.css'
 
-const Router = import.meta.env.BASE_URL === '/' ? BrowserRouter : HashRouter
+const isRootDeployment = import.meta.env.BASE_URL === '/'
+const Router = isRootDeployment ? BrowserRouter : HashRouter
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Router>
       <App />
-      <Analytics />
-      <SpeedInsights />
+      {isRootDeployment ? <Analytics /> : null}
+      {isRootDeployment ? <SpeedInsights /> : null}
     </Router>
   </React.StrictMode>
 )

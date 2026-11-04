@@ -1,6 +1,6 @@
 # Back-end
 
-API REST do Digital Flavor em Java 17 + Spring Boot 3, com PostgreSQL.
+API REST do Digital Flavor em Java 17 + Spring Boot 3, com MySQL.
 
 ## Organização
 

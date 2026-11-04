@@ -28,21 +28,21 @@ O projeto está alinhado ao **ODS 12 – Consumo e Produção Responsáveis**, c
 - Spring Boot
 
 ### Banco de Dados
-- PostgreSQL 16
+- MySQL 8
 - Flyway (versionamento do schema)
 
 ## Arquitetura
 
 Fluxo principal da aplicação:
 
-`Usuário -> React/TypeScript -> API REST -> Java/Spring Boot -> PostgreSQL`
+`Usuário -> React/TypeScript -> API REST -> Java/Spring Boot -> MySQL`
 
 ## Como executar (back-end)
 
 Pré-requisitos: Java 17+, Maven e Docker.
 
 ```bash
-# 1. Subir o PostgreSQL
+# 1. Subir o MySQL
 docker compose up -d
 
 # 2. Rodar a API (o Flyway cria as tabelas na primeira execução)
@@ -105,8 +105,8 @@ digital-flavor/
 │   └── backend/           # Java + Spring Boot (API REST)
 ├── docs/                  # Documento da AEP, Diagrama de Classes e DER
 ├── database/
-│   └── schema.sql         # Script de criação das tabelas (PostgreSQL)
-├── docker-compose.yml     # PostgreSQL para desenvolvimento
+│   └── schema.sql         # Script de criação das tabelas (MySQL)
+├── docker-compose.yml     # MySQL para desenvolvimento
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -122,7 +122,7 @@ digital-flavor/
 | 11/09/2026 | Elaboração do DER | Luiz e Anthony |
 | 11/09/2026 | Criação e organização inicial do repositório GitHub | João |
 | 04/11 a 05/11 | Definição do contrato da API (endpoints e formato JSON) | Todos |
-| 04/11 a 05/11 | Estrutura do back-end, schema PostgreSQL e entidades do domínio | Luiz |
+| 04/11 a 05/11 | Estrutura do back-end, schema MySQL e entidades do domínio | Luiz |
 | 04/11 a 05/11 | Estrutura do front-end (React, Vite, TypeScript), rotas e layout | João |
 | 06/11 a 07/11 | Autenticação (JWT), perfis de acesso e CRUD de produtos e estoque (RF01, RF02, RF03, RF04, RF06) | Luiz |
 | 06/11 a 07/11 | Serviço e API de pedidos com validação e baixa de estoque (RF05, RF07, RF08) | Anthony |
@@ -140,4 +140,4 @@ A pasta `docs/` será utilizada para armazenar o PDF da AEP, o Diagrama de Class
 
 ## Banco de Dados
 
-A pasta `database/` contém o script SQL de criação das tabelas no PostgreSQL (`schema.sql`), compatível com as classes Java. A aplicação executa o mesmo script automaticamente pelo Flyway (`src/backend/src/main/resources/db/migration`).
+A pasta `database/` contém o script SQL de criação das tabelas no MySQL (`schema.sql`), compatível com as classes Java. A aplicação executa o mesmo script automaticamente pelo Flyway (`src/backend/src/main/resources/db/migration`).

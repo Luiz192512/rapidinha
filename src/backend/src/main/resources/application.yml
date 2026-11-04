@@ -2,7 +2,7 @@ spring:
   application:
     name: digital-flavor-api
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:digital_flavor}?currentSchema=public&options=-c%20timezone=America/Sao_Paulo
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:digital_flavor}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
     username: ${DB_USER:digital_flavor}
     password: ${DB_PASSWORD:digital_flavor}
   jpa:

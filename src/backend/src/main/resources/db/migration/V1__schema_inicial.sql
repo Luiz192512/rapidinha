@@ -14,9 +14,10 @@ CREATE TABLE usuario (
     telefone      VARCHAR(20)   NULL,
     ativo         BOOLEAN       NOT NULL DEFAULT TRUE,
     tipo_usuario  VARCHAR(20)   NOT NULL
-        CHECK (tipo_usuario IN ('ALUNO','FUNCIONARIO','GERENTE','ADMINISTRADOR')),
-    CONSTRAINT uk_usuario_email UNIQUE (email)
+        CHECK (tipo_usuario IN ('ALUNO','FUNCIONARIO','GERENTE','ADMINISTRADOR'))
 );
+-- Unicidade sem diferenciar maiusculas: alinhada a findByEmailIgnoreCase.
+CREATE UNIQUE INDEX uk_usuario_email ON usuario (LOWER(email));
 
 CREATE TABLE aluno (
     usuario_id  BIGINT       PRIMARY KEY,
